@@ -1,0 +1,312 @@
+#include "WiFiS3.h"
+
+char ssid[] = "BuggyNetworkW10";    // network SSID
+char pass[] = "123456789";  // network password
+
+WiFiServer server(5200);
+WiFiClient client;
+int status = WL_IDLE_STATUS;
+
+// Define pins
+
+const int LED = 13;
+
+const int leftIR = 10;   // Left sensor D0
+const int rightIR = 11;  // Right sensor D0
+
+const int enA = 9;  // Left motor enable (PWM)
+const int in1 = 8; // Left motor direction 1
+const int in2 = 7; // Left motor direction 2
+
+const int enB = 3; // Right motor enable (PWM)
+const int in3 = 5;// Right motor direction 1
+const int in4 = 4;// Right motor direction 2
+
+const int trigPin = 2;
+const int echoPin = 6;
+
+// Defining variables
+
+
+long duration;
+float distance;
+bool stopped = false;
+//int baseSpeed = 105;
+//int turnSpeed = 100;
+const float baseSpeed = 170;
+const float maxSpeed = baseSpeed + 50;
+const float minSpeed = baseSpeed - 50;
+int SpeedL = baseSpeed * 1.2;
+int SpeedR = baseSpeed;
+float k = 1;
+//int j = 0;
+//String msg = "START";
+float error = 0;
+float lastError = 0;
+float I = 0;
+float Kp = 80;
+float Ki = 0;
+float Kd = 40;
+
+void setup();
+
+void stop();
+void driveStraight();
+/*
+void speedUp()
+*/
+void slowDown();
+
+void turnLeft();
+void turnRight();
+/*
+void searchTurn()
+*/
+
+bool isConect = false;
+void loop() {
+  /*String msg;
+  client = server.available();
+  if (client.connected()) {
+    if (isConect == false){
+      client.write("Hello Client\n");
+      isConect = true;
+    }
+    //msg = client.readString();
+    if (client && client.available()) {
+      msg = client.readStringUntil('\n');
+      msg.trim();
+    }
+    Serial.println(msg);
+    if (msg == "CMD_STOP"){
+    stopped = true;
+    Serial.println("I'm stopping");
+    }
+    if (msg == "CMD_GO"){
+    stopped = false;
+    Serial.println("I'm going");
+    }
+  }
+  
+  if (!client.connected()){
+    isConect = false;
+  }
+
+  */int leftVal = digitalRead(leftIR);  // LOW on white line, HIGH on black
+  int rightVal = digitalRead(rightIR);
+
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  duration = pulseIn(echoPin, HIGH);
+  distance = (duration*.0343)/2;
+
+  //Serial.print("Distance (cm): ");
+  //Serial.println(distance);
+ 
+  if (distance < 20 || stopped == true) {
+    stop();
+    return;
+  }/* else {*/else if (leftVal == LOW && rightVal == HIGH) {/*
+    if (leftVal == LOW && rightVal == HIGH) {    // Turn left
+      //Serial.println("left");
+      turnLeft();
+    } else if (leftVal == HIGH && rightVal == LOW) {  // Turn right
+      //Serial.println("right");
+      turnRight();
+    } else if (leftVal == HIGH && rightVal == HIGH) { // Drive straight
+      //Serial.println("Line");
+      driveStraight();
+    } /*else {  // Both LOW (both on white): experiment, e.g., slight reverse or search turn
+      //Serial.println("Search");
+      searchTurn();  // Trial: slow reverse then sharp turn
+    }
+  }*/
+
+  
+    error = -1;
+  }
+  else if (leftVal == HIGH && rightVal == LOW) {
+    error = 1;
+  }
+  else if (leftVal == HIGH && rightVal == HIGH) {
+    error = 0;
+  }
+  else {
+    error = lastError;  
+  }
+
+  // PID
+  I += error;
+  I = constrain(I, -30, 30);
+  float D = error - lastError;
+
+  float output = Kp*error + Ki*I + Kd*D;
+  lastError = error;
+
+  //
+  int pwmL = (int)(baseSpeed + output);
+  int pwmR = (int)(baseSpeed - output);
+
+  pwmL = constrain(pwmL, 0, 255);
+  pwmR = constrain(pwmR, 0, 255);
+
+  SpeedL = pwmL;
+  SpeedR = pwmR;
+  //
+  //SpeedL = constrain(SpeedL, 0, 255);
+  //SpeedR = constrain(SpeedR, 0, 255);
+  driveStraight();
+  //setMotor(leftSpeed, rightSpeed);
+}
+
+
+
+
+void setup() {
+  pinMode (LED, OUTPUT);
+  Serial.begin(9600);
+
+
+  Serial.print("Network named: ");  // Starting an access point
+  Serial.println(ssid);
+  status = WiFi.beginAP(ssid, pass);
+  Serial.println("Network started");
+
+
+  IPAddress ip = WiFi.localIP();
+  Serial.print("IP Address: ");
+  Serial.println(ip);
+  server.begin();  // Starting a server
+
+
+  pinMode(leftIR, INPUT);
+  pinMode(rightIR, INPUT);
+  pinMode(enA, OUTPUT);
+  pinMode(in1, OUTPUT);
+  pinMode(in2, OUTPUT);
+  pinMode(enB, OUTPUT);
+  pinMode(in3, OUTPUT);
+  pinMode(in4, OUTPUT);
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+}
+
+
+void stop() {
+  digitalWrite(enA, LOW);
+  digitalWrite(enB, LOW);
+
+  digitalWrite(in1, LOW);
+  digitalWrite(in2, LOW);
+  digitalWrite(in3, LOW);
+  digitalWrite(in4, LOW);
+}
+
+
+// User-defined functions for actions (use PWM for smooth differential turns)
+
+
+void driveStraight() {
+  /*if (SpeedL < baseSpeed){
+    SpeedL += k;
+    SpeedR -= k;
+  }else if (SpeedL > baseSpeed){
+    SpeedL -= k;
+    SpeedR += k;
+  }*/
+  analogWrite(enA, SpeedL);  
+  digitalWrite(in1, HIGH);
+  digitalWrite(in2, LOW);
+  analogWrite(enB, SpeedR);
+  digitalWrite(in3, HIGH);
+  digitalWrite(in4, LOW);
+}
+/*
+void speedUp(){
+  if(SpeedL <= 100 && SpeedR <= ){
+    SpeedL += 10;
+    SpeedR += 10;
+  }
+  analogWrite(enA, SpeedL);  
+  digitalWrite(in1, HIGH);
+  digitalWrite(in2, LOW);
+  analogWrite(enB, SpeedR);
+  digitalWrite(in3, HIGH);
+  digitalWrite(in4, LOW);
+}
+*/
+void slowDown(){
+  if(SpeedL >= 20 && SpeedR >= 20){
+    SpeedL -= 10;
+    SpeedR -= 10;
+  }
+  analogWrite(enA, SpeedL);  
+  digitalWrite(in1, HIGH);
+  digitalWrite(in2, LOW);
+  analogWrite(enB, SpeedR);
+  digitalWrite(in3, HIGH);
+  digitalWrite(in4, LOW);
+}
+
+void turnLeft() {
+  /*if(SpeedL > SpeedR + 4){
+    SpeedL -= k;
+    SpeedR += k;
+  }*/
+  if(SpeedL >= minSpeed){
+    SpeedL -= k;
+  }
+  if(SpeedR <= maxSpeed){
+    SpeedR += k;
+  }
+  analogWrite(enA, SpeedL);  
+  digitalWrite(in1, HIGH);  
+  digitalWrite(in2, LOW);  // Left reverse/slow
+  analogWrite(enB, SpeedR);
+  digitalWrite(in3, HIGH);
+  digitalWrite(in4, LOW);  // Right forward
+  //delay(5);
+}
+
+
+void turnRight() {
+  /*if(SpeedL + 4 < SpeedR){
+    SpeedL += k;
+    SpeedR -= k;
+  }*/
+  if(SpeedL <= maxSpeed){
+    SpeedL += k;
+  }
+  if(SpeedR >= minSpeed){
+    SpeedR -= k;
+  }
+  analogWrite(enA, SpeedL);  
+  digitalWrite(in1, HIGH);  
+  digitalWrite(in2, LOW);   // Left forward
+  analogWrite(enB, SpeedR);
+  digitalWrite(in3, HIGH);  
+  digitalWrite(in4, LOW); // Right reverse/slow
+  //delay(5);
+}
+
+/*
+void searchTurn() {  // Handle both LOW case (e.g., intersection or lost line)
+  analogWrite(enB, 0);  
+  digitalWrite(in1, LOW);
+  digitalWrite(in2, LOW);
+  analogWrite(enB, 0);
+  digitalWrite(in3, LOW);
+  digitalWrite(in4, LOW);
+  delay(200);  // Brief stop/reverse
+  // Then spin/search, e.g., sharp left until one sensor finds line
+  analogWrite(enA, 0);
+  analogWrite(enB, baseSpeed);
+  digitalWrite(in3, HIGH);
+  digitalWrite(in4, LOW);
+  delay(300);
+}
+*/
