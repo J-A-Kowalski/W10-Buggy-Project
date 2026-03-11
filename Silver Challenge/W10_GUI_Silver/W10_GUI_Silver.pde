@@ -37,7 +37,7 @@ void draw() {
   text("Input list: " + inputList[4], indent, 400);
   if (arPos != 0){
   for (int i = 0; i != arPos; i = i+1 ){
-  text("Step " + i + " : " + inputList[i], indent, 500 + (20 * i));
+  text("Step " + i + " : " + inputList[i], 600, 100 + (20 * i));
   }
   }
 }
