@@ -55,10 +55,18 @@ void keyPressed() {
     if (typing.equals("forward")){
       inputList[arPos] = saved;
       arPos = arPos + 1;
+      //myClient.write("CMD_FWD");
     }
-    else if (typing.equals("right") || typing.equals("left")) {
+    else if (typing.equals("right")){
       inputList[arPos] = saved;
       arPos = arPos + 1;
+      //myClient.write("CMD_RGT");
+      
+    } 
+    else if (typing.equals("left")) {
+      inputList[arPos] = saved;
+      arPos = arPos + 1;
+      //myClient.write("CMD_LFT");
     }
     else if (typing.equals("go")) {
     inputList = new String[100];
