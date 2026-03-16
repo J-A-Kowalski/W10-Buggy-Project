@@ -1,0 +1,237 @@
+#include "WiFiS3.h"
+
+char ssid[] = "BuggyNetworkW10";    // network SSID
+char pass[] = "123456789";  // network password
+
+WiFiServer server(5200);
+WiFiClient client;
+int status = WL_IDLE_STATUS;
+
+const int LED = 13;
+
+// Pin definitions (your mapping)
+const int enA = 9;
+const int in1 = 8;
+const int in2 = 7;
+
+const int enB = 3;
+const int in3 = 5;
+const int in4 = 4;
+
+const int trigPin = 1;
+const int echoPin = 6;
+
+// CD4021 (for CD4040 output)
+const int ClockPin = 12;   // 4021 clock
+const int LatchPin = 11;   // 4021 latch
+const int DataPin  = 10;   // 4021 Q7/Q8 → Arduino
+
+// Interrupt wheel encoder (second wheel)
+const int encoderBPin = 2; // interrupt-capable
+
+long duration;
+float distance;
+bool stopped = false;
+const float baseSpeed = 170;
+int SpeedL = baseSpeed * 1.2;
+int SpeedR = baseSpeed;
+
+void setup();
+void action(int i);
+void stop();
+void driveStraight();
+void driveStraight(k); 
+void turnR();
+void turnL();
+
+void loop() {
+  String msg;
+  int k;
+  client = server.available();
+
+  //digitalWrite(latchPin,1);
+  //digitalWrite(latchPin,0);
+
+  
+  if (client.connected()) {
+    if (isConect == false){
+      client.write("Hello Client\n");
+      isConect = true;
+    }
+    //msg = client.readString();
+    if (client && client.available()) {
+      msg = client.readStringUntil('\n');
+      msg.trim();
+    }
+    Serial.println(msg);
+    if (msg == "CMD_STOP"){
+    stopped = true;
+    Serial.println("I'm stopping");
+    }
+    if (msg == "CMD_GO"){
+    stopped = false;
+    Serial.println("I'm going");
+    }
+  }
+  
+  if (!client.connected()){
+    isConect = false;
+  }
+
+  int leftVal = digitalRead(leftIR);  // LOW on white line, HIGH on black
+  int rightVal = digitalRead(rightIR);
+
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  duration = pulseIn(echoPin, HIGH);
+  distance = (duration*.0343)/2;
+
+  //Serial.print("Distance (cm): ");
+  //Serial.println(distance);
+  
+  if (distance < 20 || stopped == true) {
+    stop();
+    return;
+  }else if (smg == "A") {
+    if (k != 0){
+      driveStraight(k);
+      stop();
+    }else {
+      driveStraight();
+    } 
+  }else if (smg == "B") {
+    stop();
+  }else if (smg == "C") {
+    if (k != 0) {
+      turnR(k);
+      stop();
+    }else {
+      turnR();
+      stop();
+    }
+  }else if (smg == "D") {
+    if (k != 0) {
+      turnL(k);
+      stop();
+    }else {
+      turnL();
+      stop();
+    }
+  }
+}
+
+void setup(){
+  pinMode (LED, OUTPUT);
+  Serial.begin(9600);
+
+  Serial.print("Network named: ");  // Starting an access point
+  Serial.println(ssid);
+  status = WiFi.beginAP(ssid, pass);
+  Serial.println("Network started");
+
+  IPAddress ip = WiFi.localIP();
+  Serial.print("IP Address: ");
+  Serial.println(ip);
+  server.begin();  // Starting a server
+
+  pinMode(enA, OUTPUT);
+  pinMode(in1, OUTPUT);
+  pinMode(in2, OUTPUT);
+  pinMode(enB, OUTPUT);
+  pinMode(in3, OUTPUT);
+  pinMode(in4, OUTPUT);
+
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+
+  pinMode(latchPin, OUTPUT);
+  pinMode(clockPin, OUTPUT);
+  pinMode(dataPin, INPUT);
+
+  pinMode(encoderBPin, INPUT);
+}
+
+void driveStraight() {
+  SpeedR = baseSpeed;
+  SpeedL = baseSpeed * 1.2;
+  analogWrite(enA, SpeedL);  
+  digitalWrite(in1, HIGH);
+  digitalWrite(in2, LOW);
+  analogWrite(enB, SpeedR);
+  digitalWrite(in3, HIGH);
+  digitalWrite(in4, LOW);
+}
+
+void driveStraight(k) {
+  SpeedR = baseSpeed;
+  SpeedL = baseSpeed * 1.2;
+  analogWrite(enA, SpeedL);  
+  digitalWrite(in1, HIGH);
+  digitalWrite(in2, LOW);
+  analogWrite(enB, SpeedR);
+  digitalWrite(in3, HIGH);  
+  digitalWrite(in4, LOW);
+  delay (k);
+}
+
+void stop() {
+  SpeedL = 0;
+  SpeedR = 0;
+  digitalWrite(enA, LOW);
+  digitalWrite(enB, LOW);
+
+  digitalWrite(in1, LOW);
+  digitalWrite(in2, LOW);
+  digitalWrite(in3, LOW);
+  digitalWrite(in4, LOW);
+}
+
+void turnR(){
+  SpeedL += 20;
+  SpeedR -= 20;
+  analogWrite(enA, SpeedL);  
+  digitalWrite(in1, HIGH);  
+  digitalWrite(in2, LOW);  // Left reverse/slow
+  analogWrite(enB, SpeedR);
+  digitalWrite(in3, HIGH);
+  digitalWrite(in4, LOW);
+  delay(10);
+}
+void turnL(){
+  SpeedL -= 20;
+  SpeedR += 20;
+  analogWrite(enA, SpeedL);  
+  digitalWrite(in1, HIGH);  
+  digitalWrite(in2, LOW);  // Left reverse/slow
+  analogWrite(enB, SpeedR);
+  digitalWrite(in3, HIGH);
+  digitalWrite(in4, LOW);
+  delay(10);
+}
+
+void turnR(int k){
+  SpeedL += 20;
+  SpeedR -= 20;
+  analogWrite(enA, SpeedL);  
+  digitalWrite(in1, HIGH);  
+  digitalWrite(in2, LOW);  // Left reverse/slow
+  analogWrite(enB, SpeedR);
+  digitalWrite(in3, HIGH);
+  digitalWrite(in4, LOW);
+  delay(k);
+}
+void turnL(int k){
+  SpeedL -= 20;
+  SpeedR += 20;
+  analogWrite(enA, SpeedL);  
+  digitalWrite(in1, HIGH);  
+  digitalWrite(in2, LOW);  // Left reverse/slow
+  analogWrite(enB, SpeedR);
+  digitalWrite(in3, HIGH);
+  digitalWrite(in4, LOW);
+  delay(k);
+}
