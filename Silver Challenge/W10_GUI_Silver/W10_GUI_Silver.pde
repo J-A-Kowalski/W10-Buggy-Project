@@ -14,6 +14,9 @@ int arPos = 0;
 // Variable to store saved text when return is hit
 String saved = "";
 String inputList[] = new String[100];
+boolean misinput = false;
+
+//String validInputs[] = {"forward", "right", "left"};
 
 void setup() {
   size (1280, 720);
@@ -31,10 +34,12 @@ void draw() {
   fill(0);
   
   // Display everything
-  text("Click in this window and type. \nHit enter to save. ", indent, 40);
+  text("Press enter to enter command into the input list \nCurrent commands are: 'forward' 'left' 'right' 'go' \nBuggy will stop automatically once it finishes the input list ", indent, 40);
   text("Input: " + typing,indent,190);
   text("Saved text: " + saved,indent,230);
-  text("Input list: " + inputList[4], indent, 400);
+  if (misinput == true){
+    text("INVALID INPUT !!!!!!!!!!!!!!", indent, 400);
+  }
   if (arPos != 0){
   for (int i = 0; i != arPos; i = i+1 ){
   text("Step " + i + " : " + inputList[i], 600, 100 + (20 * i));
@@ -45,14 +50,28 @@ void draw() {
 void keyPressed() {
   // If the return key is pressed, save the String and clear it
   if (key == '\n' ) {
+    misinput = false;
     saved = typing;
-    inputList[arPos] = typing;
-    arPos = arPos + 1;
-    // A String can be cleared by setting it equal to ""
+    if (typing.equals("forward")){
+      inputList[arPos] = saved;
+      arPos = arPos + 1;
+    }
+    else if (typing.equals("right") || typing.equals("left")) {
+      inputList[arPos] = saved;
+      arPos = arPos + 1;
+    }
+    else if (typing.equals("go")) {
+    inputList = new String[100];
+    arPos = 0;
+  }
+    else{
+       misinput = true;  
+    }
+    // resetting string
     typing = ""; 
   } else {
     // Otherwise, concatenate the String
     // Each character typed by the user is added to the end of the String variable.
-    typing = typing + key; 
+    typing = typing + key;
   }
 }
