@@ -7,6 +7,8 @@ WiFiServer server(5200);
 WiFiClient client;
 int status = WL_IDLE_STATUS;
 
+bool isConect = false;
+
 const int LED = 13;
 
 // Pin definitions (your mapping)
@@ -29,6 +31,13 @@ const int DataPin  = 10;   // 4021 Q7/Q8 → Arduino
 // Interrupt wheel encoder (second wheel)
 const int encoderBPin = 2; // interrupt-capable
 
+const int wheelCircumference = 20.4;
+const float ticksPerRev = 8.0;
+const float cmPerTick = wheelCircumference / ticksPerRev;
+
+const float trackWidth = 14.0;
+const float turn90Ticks = (PI * trackWidth / 4.0) / cmPerTick;
+
 long duration;
 float distance;
 bool stopped = false;
@@ -40,21 +49,22 @@ void setup();
 void action(int i);
 void stop();
 void driveStraight();
-void driveStraight(k); 
+void driveStraight(int k); 
 void turnR();
 void turnL();
+void turnR(int k);
+void turnL(int k);
 
 void loop() {
-  String msg;
+  char msg;
   int k;
   client = server.available();
 
   //digitalWrite(latchPin,1);
   //digitalWrite(latchPin,0);
-
   
   if (client.connected()) {
-    if (isConect == false){
+    if (!isConect){
       client.write("Hello Client\n");
       isConect = true;
     }
@@ -64,11 +74,11 @@ void loop() {
       msg.trim();
     }
     Serial.println(msg);
-    if (msg == "CMD_STOP"){
+    if (msg == "S"){
     stopped = true;
     Serial.println("I'm stopping");
     }
-    if (msg == "CMD_GO"){
+    if (msg == "G"){
     stopped = false;
     Serial.println("I'm going");
     }
@@ -78,8 +88,8 @@ void loop() {
     isConect = false;
   }
 
-  int leftVal = digitalRead(leftIR);  // LOW on white line, HIGH on black
-  int rightVal = digitalRead(rightIR);
+  // int leftVal = digitalRead(leftIR);  // LOW on white line, HIGH on black
+  // int rightVal = digitalRead(rightIR);
 
   digitalWrite(trigPin, LOW);
   delayMicroseconds(2);
@@ -96,16 +106,16 @@ void loop() {
   if (distance < 20 || stopped == true) {
     stop();
     return;
-  }else if (smg == "A") {
+  }else if (msg == "A") {
     if (k != 0){
       driveStraight(k);
       stop();
     }else {
       driveStraight();
     } 
-  }else if (smg == "B") {
+  }else if (msg == "B") {
     stop();
-  }else if (smg == "C") {
+  }else if (msg == "C") {
     if (k != 0) {
       turnR(k);
       stop();
@@ -113,7 +123,7 @@ void loop() {
       turnR();
       stop();
     }
-  }else if (smg == "D") {
+  }else if (msg == "D") {
     if (k != 0) {
       turnL(k);
       stop();
@@ -148,9 +158,9 @@ void setup(){
   pinMode(trigPin, OUTPUT);
   pinMode(echoPin, INPUT);
 
-  pinMode(latchPin, OUTPUT);
-  pinMode(clockPin, OUTPUT);
-  pinMode(dataPin, INPUT);
+  // pinMode(latchPin, OUTPUT);
+  // pinMode(clockPin, OUTPUT);
+  // pinMode(dataPin, INPUT);
 
   pinMode(encoderBPin, INPUT);
 }
@@ -166,7 +176,7 @@ void driveStraight() {
   digitalWrite(in4, LOW);
 }
 
-void driveStraight(k) {
+void driveStraight(int k) {
   SpeedR = baseSpeed;
   SpeedL = baseSpeed * 1.2;
   analogWrite(enA, SpeedL);  
@@ -191,8 +201,8 @@ void stop() {
 }
 
 void turnR(){
-  SpeedL += 20;
-  SpeedR -= 20;
+  SpeedL = 20;
+  SpeedR = -20;
   analogWrite(enA, SpeedL);  
   digitalWrite(in1, HIGH);  
   digitalWrite(in2, LOW);  // Left reverse/slow
@@ -202,8 +212,8 @@ void turnR(){
   delay(10);
 }
 void turnL(){
-  SpeedL -= 20;
-  SpeedR += 20;
+  SpeedL = -20;
+  SpeedR = 20;
   analogWrite(enA, SpeedL);  
   digitalWrite(in1, HIGH);  
   digitalWrite(in2, LOW);  // Left reverse/slow
