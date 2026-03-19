@@ -20,8 +20,8 @@ const int enB = 3;
 const int in3 = 5;
 const int in4 = 4;
 
-const int trigPin = 1;
-const int echoPin = 6;
+// const int trigPin = 1;
+// const int echoPin = 6;
 
 // CD4021 (for CD4040 output)
 const int ClockPin = 12;   // 4021 clock
@@ -37,13 +37,13 @@ const float cmPerTick = wheelCircumference / ticksPerRev;
 
 const float trackWidth = 14.0;
 const float turn90Ticks = (PI * trackWidth / 4.0) / cmPerTick;
+const float a = 500;//this to contral haw long it turn
 
 // long duration;
 // float distance;
 bool stopped = false;
 const float baseSpeed = 180;// this to contral the basespeed of buggy.
-const float d = 2.2; // this to contral the differential correction
-const int a = 10; //this to contral haw long it turn
+const float d = 1.2; // this to contral the differential correction 
 float SpeedL = baseSpeed * d;
 float SpeedR = baseSpeed;
 
@@ -57,9 +57,9 @@ void turnR(int k);
 void turnL(int k);
 
 void loop() {
-  String cmd;
-  char msg;
-  int k;
+  char msg = '\0';
+  int k = 0;
+  String cmd = "";
   client = server.available();
   
   if (client.connected()) {
@@ -72,14 +72,20 @@ void loop() {
 
       cmd = client.readStringUntil('\n');//cmd should reseave a char with number -> A100, if the action whant to be stop or go, use 0 to be the number
       cmd.trim();
-      msg = cmd.charAt(0);//Get the first "char"
+      if (cmd.length() > 0) {
+        msg = cmd.charAt(0);//Get the first "char"
+      }
 
-      k = cmd.substring(1).toInt();//Get the rest as "int"
+      k = 0;
+      if (cmd.length() > 1) {//Get the rest as "int"
+        k = cmd.substring(1).toInt();
+      }
     }
 
     Serial.println(msg);
     if (msg == 'S'){// 'S' to stop
     stopped = true;
+    stop();
     Serial.println("I'm stopping");
     return;
     }
@@ -113,7 +119,7 @@ void loop() {
         return;
       }
     }
-    if (msg == 'D' && !stopped)//'D' to turn left, if number is 0, buggy should turn 90°.
+    if (msg == 'D' && !stopped){//'D' to turn left, if number is 0, buggy should turn 90°.
       if (k != 0) {
         turnL(k);
         stop();
@@ -191,8 +197,8 @@ void setup(){
   pinMode(in3, OUTPUT);
   pinMode(in4, OUTPUT);
 
-  pinMode(trigPin, OUTPUT);
-  pinMode(echoPin, INPUT);
+  // pinMode(trigPin, OUTPUT);
+  // pinMode(echoPin, INPUT);
 
   pinMode(encoderBPin, INPUT);
 }
@@ -206,6 +212,7 @@ void driveStraight() {
   analogWrite(enB, SpeedR);
   digitalWrite(in3, HIGH);
   digitalWrite(in4, LOW);
+  delay(100);
 }
 
 void driveStraight(int k) {
@@ -233,22 +240,22 @@ void stop() {
 }
 
 void turnR(){
-  SpeedL += 20;
-  SpeedR -= 20;
+  SpeedL = 20;
+  SpeedR = 20;
   analogWrite(enA, SpeedL);  
   digitalWrite(in1, HIGH);  
   digitalWrite(in2, LOW);  // Left reverse/slow
   analogWrite(enB, SpeedR);
-  digitalWrite(in3, HIGH);
-  digitalWrite(in4, LOW);
+  digitalWrite(in3, LOW);
+  digitalWrite(in4, HIGH);
   delay(a);
 }
 void turnL(){
-  SpeedL -= 20;
-  SpeedR += 20;
+  SpeedL = 20;
+  SpeedR = 20;
   analogWrite(enA, SpeedL);  
-  digitalWrite(in1, HIGH);  
-  digitalWrite(in2, LOW);  // Left reverse/slow
+  digitalWrite(in1, LOW);  
+  digitalWrite(in2, HIGH);  // Left reverse/slow
   analogWrite(enB, SpeedR);
   digitalWrite(in3, HIGH);
   digitalWrite(in4, LOW);
@@ -256,22 +263,22 @@ void turnL(){
 }
 
 void turnR(int k){
-  SpeedL += 20;
-  SpeedR -= 20;
+  SpeedL = 20;
+  SpeedR = 20;
   analogWrite(enA, SpeedL);  
   digitalWrite(in1, HIGH);  
   digitalWrite(in2, LOW);  // Left reverse/slow
   analogWrite(enB, SpeedR);
-  digitalWrite(in3, HIGH);
-  digitalWrite(in4, LOW);
+  digitalWrite(in3, LOW);
+  digitalWrite(in4, HIGH);
   delay(k);
 }
 void turnL(int k){
-  SpeedL -= 20;
-  SpeedR += 20;
+  SpeedL = 20;
+  SpeedR = 20;
   analogWrite(enA, SpeedL);  
-  digitalWrite(in1, HIGH);  
-  digitalWrite(in2, LOW);  // Left reverse/slow
+  digitalWrite(in1, LOW);  
+  digitalWrite(in2, HIGH);  // Left reverse/slow
   analogWrite(enB, SpeedR);
   digitalWrite(in3, HIGH);
   digitalWrite(in4, LOW);
