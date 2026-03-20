@@ -37,30 +37,41 @@ const float cmPerTick = wheelCircumference / ticksPerRev;
 
 const float trackWidth = 14.0;
 const float turn90Ticks = (PI * trackWidth / 4.0) / cmPerTick;
-const float a = 500;//this to contral haw long it turn
 
-// long duration;
-// float distance;
 bool stopped = false;
 const float baseSpeed = 180;// this to contral the basespeed of buggy.
 const float d = 1.2; // this to contral the differential correction 
 float SpeedL = baseSpeed * d;
 float SpeedR = baseSpeed;
 
+char msg = '\0';
+int k = -1;
+String cmd = "";
+
+/*contral table:
+A --> drive straght
+B --> stop moving
+C --> turn right
+D --> turn left
+S --> stop contral (dont do the command)
+G --> start contral (start to do the command)
+*/
+
+unsigned long time = 0;
+unsigned long start_time = 0;
+
 void setup();
 void stop();
 void driveStraight();
-void driveStraight(int k); 
 void turnR();
 void turnL();
-void turnR(int k);
-void turnL(int k);
 
 void loop() {
-  char msg = '\0';
-  int k = 0;
-  String cmd = "";
-  client = server.available();
+
+  WiFiClient newClient = server.available();
+  if (newClient) {
+    client = newClient;
+  }
   
   if (client.connected()) {
     if (!isConect){
@@ -69,111 +80,51 @@ void loop() {
     }
     //msg = client.readString();
     if (client && client.available()) {
-
       cmd = client.readStringUntil('\n');//cmd should reseave a char with number -> A100, if the action whant to be stop or go, use 0 to be the number
       cmd.trim();
       if (cmd.length() > 0) {
         msg = cmd.charAt(0);//Get the first "char"
       }
-
       k = 0;
       if (cmd.length() > 1) {//Get the rest as "int"
         k = cmd.substring(1).toInt();
+        start_time = millis();
       }
     }
+    
+    time = millis() - start_time;
 
+    if (msg == 'S') {// S to stop all
+      k = 0;
+    }
+    else if (k > 0 && time >= (unsigned long)k) {// to contral how long the action keep, and new command will break and do the new command
+      msg = 'B';
+      k = 0;
+    }
     Serial.println(msg);
-    if (msg == 'S'){// 'S' to stop
+
+    if (msg == 'S'){// 'S' to stop contral
     stopped = true;
     stop();
     Serial.println("I'm stopping");
-    return;
-    }
-    if (msg == 'G'){// 'G' to go
+    }else if (msg == 'G'){// 'G' to start contral
     stopped = false;
     Serial.println("I'm going");
-    return;
-    }
-    if (msg == 'A' && !stopped){// 'A' to move straight, if the number is 0, buggy will keep moving, if abs(num) is not 0, buggy will move a time and stop
-      if (k != 0){
-        driveStraight(k);
-        stop();
-        return;
-      }else {
-        driveStraight();
-        return;
-      }
-    }
-    if (msg == 'B' && !stopped){// 'B' to stop the buggy
+    }else if (msg == 'A' && !stopped){// if A to keep drive straight, 
+      driveStraight();
+    }else if (msg == 'B' && !stopped){// if B to stop
       stop();
-      return;
-    }
-    if (msg == 'C' && !stopped){//'C' to turn right, if number is 0, buggy should turn 90°.
-      if (k != 0) {
-        turnR(k);
-        stop();
-        return;
-      }else {
-        turnR();
-        stop();
-        return;
-      }
-    }
-    if (msg == 'D' && !stopped){//'D' to turn left, if number is 0, buggy should turn 90°.
-      if (k != 0) {
-        turnL(k);
-        stop();
-        return;
-      }else {
-        turnL();
-        stop();
-        return;
-      }
+    }else if (msg == 'C' && !stopped){// if C to keep turn right
+      turnR();
+    }else if (msg == 'D' && !stopped){// if D to keep turn left
+      turnL();
     }
   }
-  
   if (!client.connected()){
     isConect = false;
+    stopped = true;
+    stop();
   }
-
-  // digitalWrite(trigPin, LOW);
-  // delayMicroseconds(2);
-  // digitalWrite(trigPin, HIGH);
-  // delayMicroseconds(10);
-  // digitalWrite(trigPin, LOW);
-
-  // duration = pulseIn(echoPin, HIGH);
-  // distance = (duration*.0343)/2;
-  
-  // if (distance < 20 || stopped == true) {
-  //   stop();
-  //   return;
-  // }else if (msg == "A") {
-  //   if (k != 0){
-  //     driveStraight(k);
-  //     stop();
-  //   }else {
-  //     driveStraight();
-  //   } 
-  // }else if (msg == "B") {
-  //   stop();
-  // }else if (msg == "C") {
-  //   if (k != 0) {
-  //     turnR(k);
-  //     stop();
-  //   }else {
-  //     turnR();
-  //     stop();
-  //   }
-  // }else if (msg == "D") {
-  //   if (k != 0) {
-  //     turnL(k);
-  //     stop();
-  //   }else {
-  //     turnL();
-  //     stop();
-  //   }
-  // }
 }
 
 void setup(){
@@ -197,9 +148,6 @@ void setup(){
   pinMode(in3, OUTPUT);
   pinMode(in4, OUTPUT);
 
-  // pinMode(trigPin, OUTPUT);
-  // pinMode(echoPin, INPUT);
-
   pinMode(encoderBPin, INPUT);
 }
 
@@ -212,19 +160,6 @@ void driveStraight() {
   analogWrite(enB, SpeedR);
   digitalWrite(in3, HIGH);
   digitalWrite(in4, LOW);
-  delay(100);
-}
-
-void driveStraight(int k) {
-  SpeedR = baseSpeed;
-  SpeedL = baseSpeed * d;
-  analogWrite(enA, SpeedL);  
-  digitalWrite(in1, HIGH);
-  digitalWrite(in2, LOW);
-  analogWrite(enB, SpeedR);
-  digitalWrite(in3, HIGH);  
-  digitalWrite(in4, LOW);
-  delay (k);
 }
 
 void stop() {
@@ -248,7 +183,6 @@ void turnR(){
   analogWrite(enB, SpeedR);
   digitalWrite(in3, LOW);
   digitalWrite(in4, HIGH);
-  delay(a);
 }
 void turnL(){
   SpeedL = 20;
@@ -259,28 +193,4 @@ void turnL(){
   analogWrite(enB, SpeedR);
   digitalWrite(in3, HIGH);
   digitalWrite(in4, LOW);
-  delay(a);
-}
-
-void turnR(int k){
-  SpeedL = 20;
-  SpeedR = 20;
-  analogWrite(enA, SpeedL);  
-  digitalWrite(in1, HIGH);  
-  digitalWrite(in2, LOW);  // Left reverse/slow
-  analogWrite(enB, SpeedR);
-  digitalWrite(in3, LOW);
-  digitalWrite(in4, HIGH);
-  delay(k);
-}
-void turnL(int k){
-  SpeedL = 20;
-  SpeedR = 20;
-  analogWrite(enA, SpeedL);  
-  digitalWrite(in1, LOW);  
-  digitalWrite(in2, HIGH);  // Left reverse/slow
-  analogWrite(enB, SpeedR);
-  digitalWrite(in3, HIGH);
-  digitalWrite(in4, LOW);
-  delay(k);
 }
