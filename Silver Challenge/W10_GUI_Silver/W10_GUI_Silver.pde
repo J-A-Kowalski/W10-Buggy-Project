@@ -25,7 +25,7 @@ int arPos = 0; //position in the list of inputs
 
 // Variable to store saved text when return is hit
 int saved = 0;
-String inputList[] = new String[100];
+String inputList[] = new String[20];
 boolean misinput = false;
 float distTravelled = 0;
 
@@ -40,7 +40,6 @@ void setup() {
 void draw() {
   //data = myClient.read();
   background(255);
-  int indent = 25;
   
   rectMode(CENTER);
   
@@ -50,26 +49,28 @@ void draw() {
   background(40);
   strokeWeight(2);
 
+  int btnSize = 120;
+  textAlign(CENTER);
+
   //power button
+  int gox = 380;
+  int goy = 540;
   if(overBtn_start == true){stroke(255);}
   else{stroke(0);}
-  fill(50, 205, 50, 55 + (200 * powerButton));
-  rect(280, 500, 200, 130);
+  fill(50, 205, 50);
+  rect(gox, goy, btnSize * 2, btnSize * 0.75);
   
   //power button text
   textFont(font);
   textSize(40);
-  if(powerButton == 1){fill(255);}
-  else{fill(0);}
-  text("START", 830, 280);
+  if(powerButton == 1){
+  fill(255); text("STOP", gox, goy);}
+  else{fill(0); text("START", gox, goy);}
 
   //Central buggy
   shape(buggy, 300, 280, 160, 160);
   
-  int btnSize = 120;
-  textAlign(CENTER);
-  
-  //left turning indicator
+  //left turning button
   int leftx = 190;
   int lefty = 350;
   fill(50, 205, 50);
@@ -79,7 +80,7 @@ void draw() {
   fill(255);
   text("<", leftx, lefty);
   
-  //right turning indicator
+  //right turning button
   int rightx = 570;
   int righty = 350;
   fill(50, 205, 50);
@@ -143,12 +144,9 @@ void draw() {
   text("List of Buggy Directions", 940, 40);
     
   // text inputs
-  if (misinput == true){
-    text("Input Invalid", indent, 400);
-  }
   if (arPos != 0){
   for (int i = 0; i != arPos; i = i+1 ){
-  text("Step " + (i + 1) + " : " + inputList[i], 950, 100 + (20 * i));
+  text("Step " + (i + 1) + " : " + inputList[i], 950, 100 + (30 * i));
   }
   }
   text (distTravelled, 400, 600);
@@ -191,25 +189,25 @@ if (overBtn_start == true)
   }
 }
 
-if (overBtn_right == true)
+if (overBtn_right == true && arPos != 20)
 {
   inputList[arPos] = "Turn right";
   arPos = arPos + 1;
   //myClient.write("C");
 }
 
-if (overBtn_left == true)
+if (overBtn_left == true && arPos != 20)
 {
   inputList[arPos] = "Turn left";
   arPos = arPos + 1;
   //myClient.write("A100");
 }
 
-if (overBtn_fwd == true)
+if (overBtn_fwd == true && arPos != 20)
 {
   distPrompt = true;
-  inputList[arPos] = "Go forward";
-  arPos = arPos + 1;
+  //inputList[arPos] = "Go forward";
+  //arPos = arPos + 1;
   //myClient.write("G");
 }
 
@@ -227,6 +225,7 @@ switch(key) {
   case 55: numInput = 7; break;
   case 56: numInput = 8; break;
   case 57: numInput = 9; break;
+  case 8: numInput = 0; distInput = 0; distPrompt = false; break;
   default: numInput = -1; break;
 }
 if (numInput == -1){
@@ -237,5 +236,12 @@ distInput = (distInput * 10) + numInput;
 }
 if(distInput > 999){
 distInput = (distInput - numInput) / 10;
+}
+if(key == '\n'){
+  inputList[arPos] = "Go forward " + distInput + "cm";
+  arPos = arPos + 1;
+  numInput = 0; 
+  distInput = 0; 
+  distPrompt = false;
 }
 }
