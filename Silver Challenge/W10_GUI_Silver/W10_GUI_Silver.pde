@@ -27,9 +27,6 @@ String inputList[] = new String[100];
 boolean misinput = false;
 float distTravelled = 0;
 
-
-//String validInputs[] = {"forward", "right", "left"};
-
 void setup() {
   size (1280, 720);
   //myClient = new Client(this,"192.168.4.1",5200);
@@ -130,7 +127,7 @@ void draw() {
   rect(640, 360, 300, 100);
   fill(255);
   textSize(20);
-  text("peins", 540, 360);
+  text("Enter distance: " + typing, 540, 360);
   }
   
   //console
@@ -145,7 +142,7 @@ void draw() {
     
   // Display everything
   if (misinput == true){
-    text("INVALID INPUT !!!!!!!!!!!!!!", indent, 400);
+    text("Input Invalid", indent, 400);
   }
   if (arPos != 0){
   for (int i = 0; i != arPos; i = i+1 ){
@@ -211,14 +208,14 @@ if (overBtn_start == true)
 
 if (overBtn_right == true)
 {
-  inputList[arPos] = "right";
+  inputList[arPos] = "Turn right";
   arPos = arPos + 1;
   //myClient.write("CMD_STOP");
 }
 
 if (overBtn_left == true)
 {
-  inputList[arPos] = "left";
+  inputList[arPos] = "Turn left";
   arPos = arPos + 1;
   //myClient.write("CMD_STOP");
 }
@@ -226,7 +223,7 @@ if (overBtn_left == true)
 if (overBtn_fwd == true)
 {
   distPrompt = true;
-  inputList[arPos] = "forward";
+  inputList[arPos] = "Go forward";
   arPos = arPos + 1;
   //myClient.write("CMD_STOP");
 }
