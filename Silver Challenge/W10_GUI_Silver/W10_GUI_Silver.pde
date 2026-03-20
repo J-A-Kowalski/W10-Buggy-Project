@@ -21,11 +21,12 @@ int powerButton = 0;
 int numInput = 0;
 int distInput = 0;
 
-int arPos = 0; //position in the list of inputs
+//Indent for text in the GUI
 int indent = 30;
 
 //Lists the steps the buggy needs to take
 String inputList[] = new String[20];
+int arPos = 0;
 
 //Distance travelled by buggy
 float distTravelled = 0;
