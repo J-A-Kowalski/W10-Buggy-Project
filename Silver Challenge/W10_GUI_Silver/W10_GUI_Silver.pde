@@ -2,7 +2,7 @@ import processing.serial.*;
 import processing.net.*;
 
 //communicating with buggy
-//Client myClient; 
+Client myClient; 
 int data = 0;
 
 //custom buggy vector image
@@ -33,14 +33,14 @@ float distTravelled = 0;
 
 void setup() {
   size (1280, 720);
-  //myClient = new Client(this,"192.168.4.1",5200);
+  myClient = new Client(this,"192.168.4.1",5200);
   buggy = loadShape("fella.svg");
   font = createFont("unispace.bold.otf", 128);
   
 }
 
 void draw() {
-  //data = myClient.read();
+  data = myClient.read();
   background(255);
   
   rectMode(CENTER);
@@ -160,12 +160,12 @@ if (overBtn_start == true)
 {
   if (powerButton == 0){
     powerButton = 1;
-    //myClient.write("G");
+    myClient.write("G");
   }
   else
   {
     powerButton = 0;
-    //myClient.write("B");
+    myClient.write("S");
   }
 }
 
@@ -173,22 +173,21 @@ if (overBtn_right == true && arPos != 20)
 {
   inputList[arPos] = "Turn right";
   arPos = arPos + 1;
-  //myClient.write("C");
+  String command = "C795";
+  myClient.write(command);
+  print(command);
 }
 
 if (overBtn_left == true && arPos != 20)
 {
   inputList[arPos] = "Turn left";
   arPos = arPos + 1;
-  //myClient.write("A100");
+  myClient.write("D795");
 }
 
 if (overBtn_fwd == true && arPos != 20)
 {
   distPrompt = true;
-  //inputList[arPos] = "Go forward";
-  //arPos = arPos + 1;
-  //myClient.write("G");
 }
 
 }
@@ -221,6 +220,7 @@ distInput = (distInput - numInput) / 10;
 if(key == '\n'){
   inputList[arPos] = "Go forward " + distInput + "cm";
   arPos = arPos + 1;
+  myClient.write("A" + (distInput * 10));
   numInput = 0; 
   distInput = 0; 
   distPrompt = false;
