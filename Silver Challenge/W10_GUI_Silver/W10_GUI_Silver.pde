@@ -18,11 +18,13 @@ boolean distPrompt = false;
 int powerButton = 0;
 
 // Variable to store text currently being typed
-String typing = "";
-int arPos = 0; 
+int numInput = 0;
+int distInput = 0;
+
+int arPos = 0; //position in the list of inputs
 
 // Variable to store saved text when return is hit
-String saved = "";
+int saved = 0;
 String inputList[] = new String[100];
 boolean misinput = false;
 float distTravelled = 0;
@@ -103,17 +105,17 @@ void draw() {
   else
   {overBtn_start = false;}
   
-  if((mouseX > (leftx - (btnSize / 2))) && (mouseX < (leftx + (btnSize / 2))) && (mouseY > (lefty - (btnSize / 2))) && (mouseY < (lefty + (btnSize / 2))))
+  if((mouseX > (leftx - (btnSize / 2))) && (mouseX < (leftx + (btnSize / 2))) && (mouseY > (lefty - (btnSize / 2))) && (mouseY < (lefty + (btnSize / 2))) && distPrompt == false)
   {overBtn_left = true;}
   else
   {overBtn_left = false;}
   
-  if((mouseX > (rightx - (btnSize / 2))) && (mouseX < (rightx + (btnSize / 2))) && (mouseY > (righty - (btnSize / 2))) && (mouseY < (righty + (btnSize / 2))))
+  if((mouseX > (rightx - (btnSize / 2))) && (mouseX < (rightx + (btnSize / 2))) && (mouseY > (righty - (btnSize / 2))) && (mouseY < (righty + (btnSize / 2))) && distPrompt == false)
   {overBtn_right = true;}
   else
   {overBtn_right = false;}
   
-  if((mouseX > (fwdx - (btnSize / 2))) && (mouseX < (fwdx + (btnSize / 2))) && (mouseY > (fwdy - (btnSize / 2))) && (mouseY < (fwdy + (btnSize / 2))))
+  if((mouseX > (fwdx - (btnSize / 2))) && (mouseX < (fwdx + (btnSize / 2))) && (mouseY > (fwdy - (btnSize / 2))) && (mouseY < (fwdy + (btnSize / 2))) && distPrompt == false)
   {overBtn_fwd = true;}
   else
   {overBtn_fwd = false;}
@@ -127,7 +129,7 @@ void draw() {
   rect(640, 360, 300, 100);
   fill(255);
   textSize(20);
-  text("Enter distance: " + typing, 540, 360);
+  text("Enter distance: " + distInput, 540, 360);
   }
   
   //console
@@ -140,7 +142,7 @@ void draw() {
   textSize(20);
   text("List of Buggy Directions", 940, 40);
     
-  // Display everything
+  // text inputs
   if (misinput == true){
     text("Input Invalid", indent, 400);
   }
@@ -154,42 +156,25 @@ void draw() {
   
 }
 
-void keyPressed() {
+//void keyPressed() {
   // If the return key is pressed, save the String and clear it
-  if (key == '\n' ) {
-    misinput = false;
-    saved = typing;
-    if (typing.equals("forward")){
-      inputList[arPos] = saved;
-      arPos = arPos + 1;
-    }
-    else if (typing.equals("right")){
-      inputList[arPos] = saved;
-      arPos = arPos + 1;
-      //myClient.write("CMD_RGT");
-      
-    } 
-    else if (typing.equals("left")) {
-      inputList[arPos] = saved;
-      arPos = arPos + 1;
-      //myClient.write("CMD_LFT");
-    }
-    else if (typing.equals("go")) {
-    //myClient.write("CMD_LFT");
-    inputList = new String[100];
-    arPos = 0;
-  }
-    else{
-       misinput = true;  
-    }
+  //if (key == '\n' ) {
+    //misinput = false;
+    //saved = distInput;
+    //if (saved == 789) {
+    //inputList = new String[100];
+    //arPos = 0;
+  //}
+    //else{
+      // misinput = true;  
+    //}
     // resetting string
-    typing = ""; 
-  } else {
-    // Otherwise, concatenate the String
-    // Each character typed by the user is added to the end of the String variable.
-    typing = typing + key;
-  }
-}
+    //distInput = 0; 
+  //} else if (key == 48 ) {
+  
+    //distInput = distInput + key;
+  //}
+//}
 
 //Interfacing with start button
 void mousePressed(){
@@ -197,12 +182,12 @@ if (overBtn_start == true)
 {
   if (powerButton == 0){
     powerButton = 1;
-    //myClient.write("CMD_GO");
+    //myClient.write("G");
   }
   else
   {
     powerButton = 0;
-    //myClient.write("CMD_STOP");
+    //myClient.write("B");
   }
 }
 
@@ -210,14 +195,14 @@ if (overBtn_right == true)
 {
   inputList[arPos] = "Turn right";
   arPos = arPos + 1;
-  //myClient.write("CMD_STOP");
+  //myClient.write("C");
 }
 
 if (overBtn_left == true)
 {
   inputList[arPos] = "Turn left";
   arPos = arPos + 1;
-  //myClient.write("CMD_STOP");
+  //myClient.write("A100");
 }
 
 if (overBtn_fwd == true)
@@ -225,7 +210,29 @@ if (overBtn_fwd == true)
   distPrompt = true;
   inputList[arPos] = "Go forward";
   arPos = arPos + 1;
-  //myClient.write("CMD_STOP");
+  //myClient.write("G");
 }
 
+}
+
+void keyPressed(){
+switch(key) {
+  case 48: numInput = 0; break;
+  case 49: numInput = 1; break;
+  case 50: numInput = 2; break;
+  case 51: numInput = 3; break;
+  case 52: numInput = 4; break;
+  case 53: numInput = 5; break;
+  case 54: numInput = 6; break;
+  case 55: numInput = 7; break;
+  case 56: numInput = 8; break;
+  case 57: numInput = 9; break;
+  default: numInput = -1; break;
+}
+if (numInput == -1){
+  numInput = 0;
+}
+else{
+distInput = (distInput * 10) + numInput;
+}
 }
