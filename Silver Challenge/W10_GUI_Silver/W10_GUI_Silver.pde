@@ -22,6 +22,7 @@ int numInput = 0;
 int distInput = 0;
 
 int arPos = 0; //position in the list of inputs
+int indent = 30;
 
 //Lists the steps the buggy needs to take
 String inputList[] = new String[20];
@@ -130,7 +131,7 @@ void draw() {
   rect(640, 360, 300, 100);
   fill(255);
   textSize(20);
-  text("Enter distance: " + distInput, 540, 360);
+  text("Enter distance: " + distInput, 490 + indent, 360);
   }
   
   //console
@@ -141,12 +142,12 @@ void draw() {
   
   fill(255);
   textSize(20);
-  text("List of Buggy Directions", 940, 40);
+  text("List of Buggy Directions", 900 + indent, 40);
     
   // text inputs
   if (arPos != 0){
   for (int i = 0; i != arPos; i = i+1 ){
-  text("Step " + (i + 1) + " : " + inputList[i], 950, 100 + (30 * i));
+  text("Step " + (i + 1) + " : " + inputList[i], 900 + indent, 100 + (30 * i));
   }
   }
   
