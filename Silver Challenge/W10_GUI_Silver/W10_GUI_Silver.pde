@@ -23,10 +23,10 @@ int distInput = 0;
 
 int arPos = 0; //position in the list of inputs
 
-// Variable to store saved text when return is hit
-int saved = 0;
+//Lists the steps the buggy needs to take
 String inputList[] = new String[20];
-boolean misinput = false;
+
+//Distance travelled by buggy
 float distTravelled = 0;
 
 void setup() {
@@ -149,30 +149,8 @@ void draw() {
   text("Step " + (i + 1) + " : " + inputList[i], 950, 100 + (30 * i));
   }
   }
-  text (distTravelled, 400, 600);
-  distTravelled = distTravelled + 0.001;
   
 }
-
-//void keyPressed() {
-  // If the return key is pressed, save the String and clear it
-  //if (key == '\n' ) {
-    //misinput = false;
-    //saved = distInput;
-    //if (saved == 789) {
-    //inputList = new String[100];
-    //arPos = 0;
-  //}
-    //else{
-      // misinput = true;  
-    //}
-    // resetting string
-    //distInput = 0; 
-  //} else if (key == 48 ) {
-  
-    //distInput = distInput + key;
-  //}
-//}
 
 //Interfacing with start button
 void mousePressed(){
@@ -214,6 +192,7 @@ if (overBtn_fwd == true && arPos != 20)
 }
 
 void keyPressed(){
+  if(distPrompt == true){
 switch(key) {
   case 48: numInput = 0; break;
   case 49: numInput = 1; break;
@@ -243,5 +222,6 @@ if(key == '\n'){
   numInput = 0; 
   distInput = 0; 
   distPrompt = false;
+}
 }
 }
