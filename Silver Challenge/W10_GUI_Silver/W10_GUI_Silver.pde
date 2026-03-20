@@ -232,7 +232,10 @@ switch(key) {
 if (numInput == -1){
   numInput = 0;
 }
-else{
+else if(distInput < 999){
 distInput = (distInput * 10) + numInput;
+}
+if(distInput > 999){
+distInput = (distInput - numInput) / 10;
 }
 }
