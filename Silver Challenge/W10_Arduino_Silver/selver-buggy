@@ -27,6 +27,7 @@ const int in4 = 4;
 const int ClockPin = 12;   // 4021 clock
 const int LatchPin = 11;   // 4021 latch
 const int DataPin  = 10;   // 4021 Q7/Q8 → Arduino
+const int ResetPin = 0;
 
 // Interrupt wheel encoder (second wheel)
 const int encoderBPin = 2; // interrupt-capable
@@ -36,17 +37,21 @@ const float ticksPerRev = 8.0;
 const float cmPerTick = wheelCircumference / ticksPerRev;
 
 const float trackWidth = 14.0;
-const float turn90Ticks = (PI * trackWidth / 4.0) / cmPerTick;
+const float perimeter = PI * trackWidth;
+const float turnpath = perimeter / 4;
 
 bool stopped = false;
-const float baseSpeed = 180;// this to contral the basespeed of buggy.
-const float d = 1.2; // this to contral the differential correction 
+const float baseSpeed = 100;// this to contral the basespeed of buggy.
+const float d = 1.5; // this to contral the differential correction 
 float SpeedL = baseSpeed * d;
 float SpeedR = baseSpeed;
+const float R = 100;
 
 char msg = '\0';
-int k = -1;
+float k = -1.0;
 String cmd = "";
+
+int a = 8;
 
 /*contral table:
 A --> drive straght
@@ -60,11 +65,19 @@ G --> start contral (start to do the command)
 unsigned long time = 0;
 unsigned long start_time = 0;
 
+float pathDistance = 0;
+float startDistance = 0;
+float distance;
+
 void setup();
-void stop();
+void stopBuggy();
 void driveStraight();
 void turnR();
 void turnL();
+
+//about hall sensor
+byte myShiftIn(int myDataPin, int myClockPin);
+byte read4021 (int latchPin, int dataPin, int clockPin);
 
 void loop() {
 
@@ -72,7 +85,7 @@ void loop() {
   if (newClient) {
     client = newClient;
   }
-  
+  distance += read4021(LatchPin, DataPin, ClockPin);
   if (client.connected()) {
     if (!isConect){
       client.write("Hello Client\n");
@@ -88,24 +101,37 @@ void loop() {
       k = 0;
       if (cmd.length() > 1) {//Get the rest as "int"
         k = cmd.substring(1).toInt();
-        start_time = millis();
+        //start_time = millis();
+        startDistance = distance;
+        if (msg == 'C' || msg == 'D'){
+          k = perimeter * (k / 360.0);
+        }
       }
     }
     
-    time = millis() - start_time;
+    // time = millis() - start_time;
+    // if (msg == 'S') {// S to stop all
+    //   k = 0;
+    // }
+    // else if (k > 0 && time >= (unsigned long)k) {// to contral how long the action keep, and new command will break and do the new command
+    //   msg = 'B';
+    //   k = 0;
+    // }
+    
+    pathDistance = (distance - startDistance) * cmPerTick;
 
-    if (msg == 'S') {// S to stop all
+    if (msg == 'S'){
       k = 0;
-    }
-    else if (k > 0 && time >= (unsigned long)k) {// to contral how long the action keep, and new command will break and do the new command
+    }else if (pathDistance >= k && k > 0){
       msg = 'B';
       k = 0;
     }
+
     Serial.println(msg);
 
     if (msg == 'S'){// 'S' to stop contral
     stopped = true;
-    stop();
+    stopBuggy();
     Serial.println("I'm stopping");
     }else if (msg == 'G'){// 'G' to start contral
     stopped = false;
@@ -113,17 +139,18 @@ void loop() {
     }else if (msg == 'A' && !stopped){// if A to keep drive straight, 
       driveStraight();
     }else if (msg == 'B' && !stopped){// if B to stop
-      stop();
+      stopBuggy();
     }else if (msg == 'C' && !stopped){// if C to keep turn right
       turnR();
     }else if (msg == 'D' && !stopped){// if D to keep turn left
       turnL();
     }
   }
+
   if (!client.connected()){
     isConect = false;
     stopped = true;
-    stop();
+    stopBuggy();
   }
 }
 
@@ -149,6 +176,13 @@ void setup(){
   pinMode(in4, OUTPUT);
 
   pinMode(encoderBPin, INPUT);
+
+  pinMode(ClockPin, OUTPUT);
+  pinMode(DataPin, INPUT);
+  pinMode(LatchPin, OUTPUT);
+  digitalWrite(reset4040Pin, LOW);
+
+  distance = 0;
 }
 
 void driveStraight() {
@@ -162,7 +196,7 @@ void driveStraight() {
   digitalWrite(in4, LOW);
 }
 
-void stop() {
+void stopBuggy() {
   SpeedL = 0;
   SpeedR = 0;
   digitalWrite(enA, LOW);
@@ -175,8 +209,8 @@ void stop() {
 }
 
 void turnR(){
-  SpeedL = 20;
-  SpeedR = 20;
+  SpeedL = R;
+  SpeedR = R;
   analogWrite(enA, SpeedL);  
   digitalWrite(in1, HIGH);  
   digitalWrite(in2, LOW);  // Left reverse/slow
@@ -185,12 +219,44 @@ void turnR(){
   digitalWrite(in4, HIGH);
 }
 void turnL(){
-  SpeedL = 20;
-  SpeedR = 20;
+  SpeedL = R;
+  SpeedR = R;
   analogWrite(enA, SpeedL);  
-  digitalWrite(in1, LOW);  
+  digitalWrite(in1, LOW); 
   digitalWrite(in2, HIGH);  // Left reverse/slow
   analogWrite(enB, SpeedR);
   digitalWrite(in3, HIGH);
   digitalWrite(in4, LOW);
+}
+
+byte myShiftIn(int myDataPin, int myClockPin){
+  int i;
+  int temp = 0;
+  int pinState;
+  byte myDataIn = 0;
+
+  for (i = 7; i >= 0; i--){
+    digitalWrite(myClockPin, 0);
+    delayMicroseconds(1);
+    temp = digitalRead(myDataPin);
+    if (temp){
+      pinState = 1;
+
+      myDataIn = myDataIn | (1 << i);
+    }else {
+      pinState = 0;
+    }
+
+    digitalWrite(myClockPin, 1);
+  }
+  return myDataIn;
+}
+
+byte read4021 (int latchPin, int dataPin, int clockPin){
+  digitalWrite(latchPin, 1);
+  delayMicroseconds(20);
+  digitalWrite(latchPin, 0);
+
+  return myShiftIn(dataPin, clockPin);
+
 }
