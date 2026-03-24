@@ -27,10 +27,10 @@ const int trigPin = 1;
 const int echoPin = 6;
 
 // CD4021 / CD4040
-const int ClockPin = 12;
-const int LatchPin = 11;
-const int DataPin  = 10;
-const int ResetPin = 0;
+const int clockPin = 11;
+const int latchPin = 12;
+const int dataPin  = 10;
+const int resetPin = 0;
 
 // Direct encoder
 const int encoderBPin = 2;
@@ -48,9 +48,9 @@ const float turnpath90 = perimeter / 4.0;
 const float baseSpeed = 100;
 const float turnSpeed = 100;
 
-const float d = 1.095;       // left motor scalar
+const float d = 1.095;
 const float rightScalar = 1.00;
-const float kP = 0.0;      // straight line correction
+const float kP = 0.0;
 
 float SpeedL = baseSpeed * d;
 float SpeedR = baseSpeed;
@@ -59,11 +59,12 @@ float SpeedR = baseSpeed;
 bool stopped = false;
 
 char msg = 'B';
-float targetValue = 0.0;     // cm for A, degrees converted to arc length for C/D
+float targetValue = 0.0;
 float startDistance = 0.0;
 
 // ================= ENCODER VARIABLES =================
 volatile unsigned long directTicks = 0;
+byte switchVar1 = 0;
 byte prev4021 = 0;
 unsigned long chipTicks = 0;
 
@@ -86,7 +87,7 @@ void turnL();
 
 void countEncoderB();
 
-byte myShiftIn(int myDataPin, int myClockPin);
+byte shiftIn(int myDataPin, int myClockPin);
 byte read4021(int latchPin, int dataPin, int clockPin);
 void updateChipTicks();
 void reset4040();
@@ -98,9 +99,12 @@ float readUltrasonic();
 void updateSpeed();
 void sendTelemetry();
 
+void debugEncoderState(const char* label);
+
 void setup() {
   pinMode(LED, OUTPUT);
   Serial.begin(9600);
+  while (!Serial) { }
 
   Serial.print("Network named: ");
   Serial.println(ssid);
@@ -125,27 +129,36 @@ void setup() {
 
   pinMode(encoderBPin, INPUT_PULLUP);
 
-  pinMode(ClockPin, OUTPUT);
-  pinMode(DataPin, INPUT);
-  pinMode(LatchPin, OUTPUT);
-  pinMode(ResetPin, OUTPUT);
+  pinMode(clockPin, OUTPUT);
+  pinMode(dataPin, INPUT);
+  pinMode(latchPin, OUTPUT);
+  pinMode(resetPin, OUTPUT);
 
-  digitalWrite(ClockPin, LOW);
-  digitalWrite(LatchPin, LOW);
-  digitalWrite(ResetPin, LOW);
+  digitalWrite(clockPin, HIGH);
+  digitalWrite(latchPin, LOW);
+  digitalWrite(resetPin, LOW);
 
   attachInterrupt(digitalPinToInterrupt(encoderBPin), countEncoderB, CHANGE);
 
   reset4040();
-  prev4021 = read4021(LatchPin, DataPin, ClockPin);
+  switchVar1 = read4021(latchPin, dataPin, clockPin);
+  prev4021 = switchVar1;
 
   stopBuggy();
   lastSpeedTime = millis();
+
+  debugEncoderState("Setup");
 }
 
 void loop() {
   updateChipTicks();
   updateSpeed();
+
+  static unsigned long lastDebug = 0;
+  if (millis() - lastDebug > 1000) {
+    lastDebug = millis();
+    debugEncoderState("Loop");
+  }
 
   WiFiClient newClient = server.available();
   if (newClient) {
@@ -171,14 +184,12 @@ void loop() {
           targetValue = 0.0;
         }
 
-        // Start a new measured move
         if (msg == 'A' || msg == 'C' || msg == 'D') {
           resetEncoders();
           startDistance = totalDistanceCm;
 
-          // Convert degrees into arc distance for turns
           if (msg == 'C' || msg == 'D') {
-            targetValue = turnpath90 * (targetValue / 90.0);
+            targetValue = turnpath90;
           }
         }
       }
@@ -186,7 +197,6 @@ void loop() {
 
     obstacleDistance = readUltrasonic();
 
-    // pause / resume
     if (msg == 'S') {
       stopped = true;
       stopBuggy();
@@ -199,7 +209,6 @@ void loop() {
     if (!stopped) {
       float segmentDistance = getSegmentDistance();
 
-      // automatic stop when target reached
       if ((msg == 'A' || msg == 'C' || msg == 'D') && targetValue > 0) {
         if (segmentDistance >= targetValue) {
           totalDistanceCm += segmentDistance;
@@ -208,7 +217,6 @@ void loop() {
         }
       }
 
-      // obstacle stop for forward motion
       if (msg == 'A' && obstacleDistance > 0 && obstacleDistance < 20.0) {
         msg = 'B';
       }
@@ -300,26 +308,35 @@ void countEncoderB() {
 
 // ================= CD4021 / CD4040 =================
 void reset4040() {
-  digitalWrite(ResetPin, HIGH);
-  delayMicroseconds(20);
-  digitalWrite(ResetPin, LOW);
-  delayMicroseconds(20);
+  digitalWrite(resetPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(resetPin, LOW);
+  delayMicroseconds(10);
 }
 
-byte myShiftIn(int myDataPin, int myClockPin) {
+byte shiftIn(int myDataPin, int myClockPin) {
+  int i;
+  int temp = 0;
+  int pinState;
   byte myDataIn = 0;
 
-  for (int i = 7; i >= 0; i--) {
+  pinMode(myClockPin, OUTPUT);
+  pinMode(myDataPin, INPUT);
+
+  for (i = 7; i >= 0; i--) {
     digitalWrite(myClockPin, LOW);
     delayMicroseconds(1);
 
-    int temp = digitalRead(myDataPin);
+    temp = digitalRead(myDataPin);
+
     if (temp) {
-      myDataIn |= (1 << i);
+      pinState = 1;
+      myDataIn = myDataIn | (1 << i);
+    } else {
+      pinState = 0;
     }
 
     digitalWrite(myClockPin, HIGH);
-    delayMicroseconds(1);
   }
 
   return myDataIn;
@@ -330,19 +347,19 @@ byte read4021(int latchPin, int dataPin, int clockPin) {
   delayMicroseconds(20);
   digitalWrite(latchPin, LOW);
 
-  return myShiftIn(dataPin, clockPin);
+  return shiftIn(dataPin, clockPin);
 }
 
 void updateChipTicks() {
-  byte currentVal = read4021(LatchPin, DataPin, ClockPin);
-  int diff = currentVal - prev4021;
+  switchVar1 = read4021(latchPin, dataPin, clockPin);
+  int diff = switchVar1 - prev4021;
 
   if (diff < 0) {
     diff += 256;
   }
 
   chipTicks += diff;
-  prev4021 = currentVal;
+  prev4021 = switchVar1;
 }
 
 void resetEncoders() {
@@ -352,10 +369,14 @@ void resetEncoders() {
 
   chipTicks = 0;
   reset4040();
-  prev4021 = read4021(LatchPin, DataPin, ClockPin);
+  delay(5);
+  switchVar1 = read4021(latchPin, dataPin, clockPin);
+  prev4021 = switchVar1;
 
   lastSpeedTicks = 0;
   lastSpeedTime = millis();
+
+  debugEncoderState("After reset");
 }
 
 // ================= DISTANCE / SPEED =================
@@ -414,4 +435,21 @@ void sendTelemetry() {
     client.print(",SPEED=");
     client.println(currentSpeedCmS, 1);
   }
+}
+
+// ================= DEBUG =================
+void debugEncoderState(const char* label) {
+  byte raw4021 = read4021(latchPin, dataPin, clockPin);
+
+  noInterrupts();
+  unsigned long dt = directTicks;
+  interrupts();
+
+  Serial.print(label);
+  Serial.print(" directTicks=");
+  Serial.print(dt);
+  Serial.print(" chipTicks=");
+  Serial.print(chipTicks);
+  Serial.print(" raw4021=");
+  Serial.println(raw4021);
 }
