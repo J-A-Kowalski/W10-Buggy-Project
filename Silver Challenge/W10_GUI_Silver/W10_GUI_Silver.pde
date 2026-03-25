@@ -2,8 +2,8 @@ import processing.serial.*;
 import processing.net.*;
 
 //communicating with buggy
-//Client myClient; 
-int data = 0;
+Client myClient; 
+String data = "";
 
 //custom buggy vector image
 PShape buggy;
@@ -25,24 +25,28 @@ int distInput = 0;
 int indent = 30;
 
 //Lists the steps the buggy needs to take
-//String inputList[] = new String[20];
+String inputList[] = new String[20];
 String inputDisplay = "";
 int arPos = 0;
 
 //Distance travelled by buggy
-float distTravelled = 0;
+String distTravelled = "0";
 
 void setup() {
   size (1280, 720);
-  //myClient = new Client(this,"192.168.4.1",5200);
+  myClient = new Client(this,"192.168.4.1",5200);
   buggy = loadShape("fella.svg");
   font = createFont("unispace.bold.otf", 128);
   
 }
 
 void draw() {
-  //data = myClient.read();
+  data = myClient.readString();
   background(255);
+  if (data != null){
+  distTravelled = data;
+  }
+  //distTravelled = data;
   
   rectMode(CENTER);
   
@@ -144,8 +148,8 @@ void draw() {
   
   fill(255);
   textSize(20);
-  text("Latest Buggy Command: " + inputDisplay, indent, 560);
-  text("Distance Covered: " + distTravelled, indent, 600);
+  text("Last Buggy Command: " + inputDisplay, indent, 560);
+  text("Distance Covered: " + distTravelled + "cm", indent, 600);
     
   // text inputs
   //if (arPos != 0){
@@ -161,13 +165,13 @@ if (overBtn_start == true)
 {
   if (powerButton == 0){
     powerButton = 1;
-    //myClient.write("G");
+    myClient.write("G");
     inputDisplay = "Turn on";
   }
   else
   {
     powerButton = 0;
-    //myClient.write("S");
+    myClient.write("S");
     inputDisplay = "Turn off";
   }
 }
@@ -175,17 +179,13 @@ if (overBtn_start == true)
 if (overBtn_right == true && arPos != 20)
 {
   inputDisplay = "Turn right";
-  arPos = arPos + 1;
-  String command = "C795";
-  //myClient.write(command);
-  print(command);
+  myClient.write("C90");
 }
 
 if (overBtn_left == true && arPos != 20)
 {
   inputDisplay = "Turn left";
-  arPos = arPos + 1;
-  //myClient.write("D795");
+  myClient.write("D90");
 }
 
 if (overBtn_fwd == true && arPos != 20)
@@ -222,8 +222,7 @@ distInput = (distInput - numInput) / 10;
 }
 if(key == '\n'){
   inputDisplay = "Go forward " + distInput + "cm";
-  arPos = arPos + 1;
-  //myClient.write("A" + (distInput * 10));
+  myClient.write("A" + (distInput * 8));
   numInput = 0; 
   distInput = 0; 
   distPrompt = false;
