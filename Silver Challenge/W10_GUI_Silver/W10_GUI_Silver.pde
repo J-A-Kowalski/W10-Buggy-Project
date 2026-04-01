@@ -46,7 +46,6 @@ void draw() {
   if (data != null){
   distTravelled = data;
   }
-  //distTravelled = data;
   
   rectMode(CENTER);
   
@@ -107,7 +106,7 @@ void draw() {
   fill(255);
   text("^", fwdx, fwdy);
   
-  //hovering over buttons
+  //hardcoding hovering over buttons
   if((mouseX > (gox - (btnSize))) && (mouseX < (gox + (btnSize))) && (mouseY > (goy - (btnSize / 2))) && (mouseY < (goy + (btnSize / 2))) && distPrompt == false)
   {overBtn_start = true;}
   else
@@ -179,7 +178,7 @@ if (overBtn_start == true)
 if (overBtn_right == true && arPos != 20)
 {
   inputDisplay = "Turn right";
-  myClient.write("C90");
+  myClient.write("C");
 }
 
 if (overBtn_left == true && arPos != 20)
@@ -197,20 +196,36 @@ if (overBtn_fwd == true && arPos != 20)
 
 void keyPressed(){
   if(distPrompt == true){
-switch(key) {
-  case 48: numInput = 0; break;
-  case 49: numInput = 1; break;
-  case 50: numInput = 2; break;
-  case 51: numInput = 3; break;
-  case 52: numInput = 4; break;
-  case 53: numInput = 5; break;
-  case 54: numInput = 6; break;
-  case 55: numInput = 7; break;
-  case 56: numInput = 8; break;
-  case 57: numInput = 9; break;
-  case 8: numInput = 0; distInput = 0; distPrompt = false; break;
-  default: numInput = -1; break;
+//switch(key) {
+//  case 48: numInput = 0; break; //digit 0
+//  case 49: numInput = 1; break; //digit 1
+//  case 50: numInput = 2; break; //digit 2
+//  case 51: numInput = 3; break; //digit 3
+//  case 52: numInput = 4; break; // 4
+//  case 53: numInput = 5; break; // 5
+//  case 54: numInput = 6; break; // 6
+//  case 55: numInput = 7; break; // 7
+//  case 56: numInput = 8; break; // 8
+//  case 57: numInput = 9; break; // 9
+//  case 8: numInput = 0; distInput = 0; distPrompt = false; break;
+//  default: numInput = -1; break;
+//}
+
+// Cancel with backspace
+if (key == BACKSPACE) {
+      numInput = 0;
+      distInput = 0;
+      distPrompt = false;
 }
+
+// If it's a digit 0–9
+else if (key >= '0' && key <= '9') {
+      numInput = key - '0';
+}
+else{
+  numInput = -1;
+}
+
 if (numInput == -1){
   numInput = 0;
 }
@@ -222,7 +237,7 @@ distInput = (distInput - numInput) / 10;
 }
 if(key == '\n'){
   inputDisplay = "Go forward " + distInput + "cm";
-  myClient.write("A" + (distInput * 8));
+  myClient.write("A" + (distInput));
   numInput = 0; 
   distInput = 0; 
   distPrompt = false;
