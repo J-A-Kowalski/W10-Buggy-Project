@@ -45,7 +45,7 @@ const float turnpath90 = perimeter / 4.0;
 // ================= MOTOR SETTINGS =================
 const int basePWM = 100;
 const int TURN_SPEED_PWM = 140;
-const int TURN_TIME_90 = 440;
+const int TURN_TIME_90 = 520;
 
 const float d = 1.11;
 const float rightScalar = 1.0;
@@ -467,10 +467,7 @@ void sendTelemetry() {
       reportedTotal = totalDistanceCm;
     }
 
-    client.print("DIST=");
-    client.print(reportedTotal, 1);
-    client.print(",SPEED=");
-    client.println(currentSpeedCmS, 1);
+    client.println(reportedTotal);
   }
 }
 
